@@ -9,7 +9,9 @@ readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
     "sqlalchemy (>=2.0.50,<3.0.0)",
-    "pydantic-settings (>=2.14.2,<3.0.0)"
+    "pydantic-settings (>=2.14.2,<3.0.0)",
+    "fastapi[standard] (>=0.138.0,<0.139.0)",
+    "alembic (>=1.18.4,<2.0.0)"
 ]
 
 
@@ -23,7 +25,8 @@ dev = [
     "pytest-cov (>=7.1.0,<8.0.0)",
     "taskipy (>=1.14.1,<2.0.0)",
     "ruff (>=0.15.14,<0.16.0)",
-    "typos (>=1.46.3,<2.0.0)"
+    "typos (>=1.46.3,<2.0.0)",
+    "httpx2 (>=2.4.0,<3.0.0)"
 ]
 
 [tool.ruff]

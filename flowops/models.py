@@ -1,10 +1,17 @@
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
+
+
+class UnitOfMeasure(str, Enum):
+    litro = 'L'
+    quilograma = 'Kg'
+    unidade = 'Unidade(s)'
 
 
 @table_registry.mapped_as_dataclass
@@ -92,7 +99,8 @@ class Ingredient:
     name: Mapped[str]
     unit_of_measure: Mapped[str]
     minimum: Mapped[Decimal]
+    quantity: Mapped[Decimal]
 
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
-        back_populates='ingredient'
+        init=False, back_populates='ingredient'
     )
