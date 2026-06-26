@@ -48,7 +48,7 @@ def test_list_ingredients(client, ingredient):
             {
                 'id': 1,
                 'minimum': '10.0000000000',
-                'name': 'ingrediente',
+                'name': 'ingredient',
                 'quantity': '0E-10',
                 'unit_of_measure': 'Unidade(s)',
             }

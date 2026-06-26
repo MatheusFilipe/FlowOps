@@ -23,7 +23,7 @@ class User:
     phone: Mapped[str] = mapped_column(unique=True)
     address: Mapped[str]
 
-    orders: Mapped[list['Order']] = relationship()
+    orders: Mapped[list['Order']] = relationship(init=False, lazy='select')
 
 
 @table_registry.mapped_as_dataclass
@@ -37,9 +37,11 @@ class Order:
     client_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     notes: Mapped[str] = mapped_column(nullable=True)
 
-    client: Mapped['User'] = relationship(back_populates='orders')
+    client: Mapped['User'] = relationship(
+        init=False, back_populates='orders', lazy='joined'
+    )
     order_items: Mapped[list['OrderItem']] = relationship(
-        back_populates='order'
+        init=False, back_populates='order', lazy='selectin'
     )
 
 
@@ -53,8 +55,12 @@ class OrderItem:
     quantity: Mapped[int]
     unit_price: Mapped[Decimal]
 
-    order: Mapped['Order'] = relationship(back_populates='order_items')
-    product: Mapped['Product'] = relationship(back_populates='order_items')
+    order: Mapped['Order'] = relationship(
+        init=False, back_populates='order_items', lazy='joined'
+    )
+    product: Mapped['Product'] = relationship(
+        init=False, back_populates='order_items', lazy='joined'
+    )
 
 
 @table_registry.mapped_as_dataclass
@@ -67,10 +73,10 @@ class Product:
     preparation_time: Mapped[int]  # minutes
 
     order_items: Mapped[list['OrderItem']] = relationship(
-        back_populates='product'
+        init=False, back_populates='product', lazy='noload'
     )
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
-        back_populates='product'
+        init=False, back_populates='product', lazy='selectin'
     )
 
 
@@ -84,10 +90,10 @@ class ProductIngredient:
     quantity: Mapped[Decimal]
 
     product: Mapped['Product'] = relationship(
-        back_populates='product_ingredients'
+        init=False, back_populates='product_ingredients', lazy='joined'
     )
     ingredient: Mapped['Ingredient'] = relationship(
-        back_populates='product_ingredients'
+        init=False, back_populates='product_ingredients', lazy='joined'
     )
 
 
@@ -97,10 +103,10 @@ class Ingredient:
 
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     name: Mapped[str]
-    unit_of_measure: Mapped[str]
+    unit_of_measure: Mapped[UnitOfMeasure]
     minimum: Mapped[Decimal]
     quantity: Mapped[Decimal]
 
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
-        init=False, back_populates='ingredient'
+        init=False, back_populates='ingredient', lazy='noload'
     )

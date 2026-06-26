@@ -1,0 +1,111 @@
+from http import HTTPStatus
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from flowops.database import get_session
+from flowops.models import Ingredient, Product, ProductIngredient
+from flowops.schemas import (
+    ProductList,
+    ProductPublic,
+    ProductSchema,
+    ProductUpdate,
+)
+
+router = APIRouter(prefix='/products', tags=['products'])
+
+Session = Annotated[Session, Depends(get_session)]
+
+
+@router.post('/', status_code=HTTPStatus.OK, response_model=ProductPublic)
+def create_product(session: Session, schema: ProductSchema):
+    product = session.scalar(
+        select(Product).where(Product.name == schema.name)
+    )
+
+    if product:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='Produto já cadastrado.',
+        )
+
+    product = Product(
+        name=schema.name,
+        description=schema.description,
+        preparation_time=schema.preparation_time,
+    )
+
+    session.add(product)
+    session.commit()
+
+    product_ingredients = []
+    for id, quantity in schema.ingredients_quantity.items():
+        if not session.scalar(select(Ingredient).where(Ingredient.id == id)):
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail='Ingrediente não encontrado.',
+            )
+
+        product_ingredient = ProductIngredient(
+            product_id=product.id, ingredient_id=id, quantity=quantity
+        )
+
+        print(product_ingredient)
+        product_ingredients.append(product_ingredient)
+
+        session.add(product_ingredient)
+        session.commit()
+        session.refresh(product_ingredient)
+
+    session.refresh(product)
+
+    return product
+
+
+@router.get('/', status_code=HTTPStatus.OK, response_model=ProductList)
+def list_products(session: Session):
+    products = session.scalars(select(Product))
+
+    return {'products': products}
+
+
+@router.patch(
+    '/{product_id}',
+    status_code=HTTPStatus.OK,
+    response_model=ProductPublic,
+)
+def update_product(session: Session, product_id: int, schema: ProductUpdate):
+    product = session.scalar(select(Product).where(Product.id == product_id))
+
+    if not product:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='Produto não encontrado.',
+        )
+
+    for key, value in schema.model_dump(exclude_unset=True).items():
+        setattr(product, key, value)
+
+    session.add(product)
+    session.commit()
+    session.refresh(product)
+
+    return product
+
+
+@router.delete('/{product_id}', status_code=HTTPStatus.OK, response_model=dict)
+def delete_product(session: Session, product_id: int):
+    product = session.scalar(select(Product).where(Product.id == product_id))
+
+    if not product:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='Produto não encontrado.',
+        )
+
+    session.delete(product)
+    session.commit()
+
+    return {'message': 'Produto deletado.'}

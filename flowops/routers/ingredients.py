@@ -14,9 +14,9 @@ from flowops.schemas import (
     IngredientUpdate,
 )
 
-Session = Annotated[Session, Depends(get_session)]
+router = APIRouter(prefix='/ingredients', tags=['ingredients'])
 
-router = APIRouter(prefix='/ingredients')
+Session = Annotated[Session, Depends(get_session)]
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=IngredientPublic)
