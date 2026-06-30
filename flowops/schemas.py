@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict
+from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from flowops.models import UnitOfMeasure
 
@@ -51,3 +52,23 @@ class ProductUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     preparation_time: int | None = None
+
+
+class UserSchema(BaseModel):
+    name: str
+    phone: PhoneNumber
+    address: str | None = None
+
+
+class UserPublic(UserSchema):
+    id: int
+
+
+class UserList(BaseModel):
+    users: list[UserPublic]
+
+
+class UserUpdate(BaseModel):
+    name: str | None = None
+    phone: PhoneNumber | None = None
+    address: str | None = None

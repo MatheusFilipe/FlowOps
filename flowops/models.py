@@ -21,7 +21,7 @@ class User:
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     name: Mapped[str]
     phone: Mapped[str] = mapped_column(unique=True)
-    address: Mapped[str]
+    address: Mapped[str] = mapped_column(nullable=True)
 
     orders: Mapped[list['Order']] = relationship(init=False, lazy='select')
 

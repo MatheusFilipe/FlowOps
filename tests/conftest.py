@@ -11,6 +11,7 @@ from flowops.models import (
     Product,
     ProductIngredient,
     UnitOfMeasure,
+    User,
     table_registry,
 )
 
@@ -84,3 +85,18 @@ def product_ingredient(session, product, ingredient):
     session.refresh(product_ingredient)
 
     return product_ingredient
+
+
+@pytest.fixture
+def user(session):
+    user = User(
+        name='user',
+        phone='tel:+55-11-4002-8922',
+        address='Rua dos Bobos, n° 0'
+    )
+
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user

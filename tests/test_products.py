@@ -70,9 +70,7 @@ def test_list_products_empty(client):
 
 
 def test_update_product(client, product):
-    response = client.patch(
-        f'/products/{product.id}', json={'name': 'test'}
-    )
+    response = client.patch(f'/products/{product.id}', json={'name': 'test'})
 
     payload = ProductPublic.model_validate(product).model_dump()
     payload['name'] = 'test'
