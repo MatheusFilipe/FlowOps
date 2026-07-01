@@ -1,7 +1,5 @@
 from http import HTTPStatus
 
-from flowops.schemas import ProductPublic
-
 
 def test_create_product(client, ingredient):
     response = client.post(
@@ -10,6 +8,7 @@ def test_create_product(client, ingredient):
             'name': 'product',
             'description': 'description',
             'preparation_time': 15,
+            'price': 10,
             'ingredients_quantity': {ingredient.id: 5},
         },
     )
@@ -20,6 +19,7 @@ def test_create_product(client, ingredient):
         'name': 'product',
         'description': 'description',
         'preparation_time': 15,
+        'price': '10.0000000000',
     }
 
 
@@ -30,6 +30,7 @@ def test_create_product_conflict(client, product, ingredient):
             'name': 'product',
             'description': 'description',
             'preparation_time': 15,
+            'price': 10,
             'ingredients_quantity': {ingredient.id: 5},
         },
     )
@@ -45,6 +46,7 @@ def test_create_product_ingredient_not_found(client):
             'name': 'product',
             'description': 'description',
             'preparation_time': 15,
+            'price': 10,
             'ingredients_quantity': {67: 5},
         },
     )
@@ -58,7 +60,15 @@ def test_list_products(client, product):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
-        'products': [ProductPublic.model_validate(product).model_dump()]
+        'products': [
+            {
+                'description': 'description',
+                'id': 1,
+                'name': 'product',
+                'preparation_time': 15,
+                'price': '10.0000000000',
+            }
+        ]
     }
 
 
@@ -72,11 +82,14 @@ def test_list_products_empty(client):
 def test_update_product(client, product):
     response = client.patch(f'/products/{product.id}', json={'name': 'test'})
 
-    payload = ProductPublic.model_validate(product).model_dump()
-    payload['name'] = 'test'
-
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == payload
+    assert response.json() == {
+        'id': 1,
+        'name': 'test',
+        'description': 'description',
+        'preparation_time': 15,
+        'price': '10.0000000000',
+    }
 
 
 def test_update_product_not_found(client):

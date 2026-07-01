@@ -35,6 +35,7 @@ def create_product(session: Session, schema: ProductSchema):
         name=schema.name,
         description=schema.description,
         preparation_time=schema.preparation_time,
+        price=schema.price,
     )
 
     session.add(product)
@@ -52,7 +53,6 @@ def create_product(session: Session, schema: ProductSchema):
             product_id=product.id, ingredient_id=id, quantity=quantity
         )
 
-        print(product_ingredient)
         product_ingredients.append(product_ingredient)
 
         session.add(product_ingredient)

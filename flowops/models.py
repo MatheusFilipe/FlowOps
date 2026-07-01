@@ -36,12 +36,21 @@ class Order:
     )
     client_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     notes: Mapped[str] = mapped_column(nullable=True)
+    final_amount: Mapped[Decimal] = mapped_column(
+        init=False, default=Decimal('0.00')
+    )
+    estimated_ready_at: Mapped[datetime] = mapped_column(
+        init=False, default=func.now()
+    )
 
     client: Mapped['User'] = relationship(
         init=False, back_populates='orders', lazy='joined'
     )
     order_items: Mapped[list['OrderItem']] = relationship(
-        init=False, back_populates='order', lazy='selectin'
+        init=False,
+        back_populates='order',
+        lazy='selectin',
+        cascade='all, delete-orphan',
     )
 
 
@@ -71,12 +80,16 @@ class Product:
     name: Mapped[str]
     description: Mapped[str]
     preparation_time: Mapped[int]  # minutes
+    price: Mapped[Decimal]
 
     order_items: Mapped[list['OrderItem']] = relationship(
         init=False, back_populates='product', lazy='noload'
     )
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
-        init=False, back_populates='product', lazy='selectin'
+        init=False,
+        back_populates='product',
+        lazy='selectin',
+        cascade='all, delete-orphan',
     )
 
 
