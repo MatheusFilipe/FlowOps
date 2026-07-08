@@ -8,12 +8,13 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.14,<4.0"
 dependencies = [
-    "sqlalchemy (>=2.0.50,<3.0.0)",
+    "sqlalchemy[asyncio] (>=2.0.51,<3.0.0)",
     "pydantic-settings (>=2.14.2,<3.0.0)",
     "fastapi[standard] (>=0.138.0,<0.139.0)",
     "alembic (>=1.18.4,<2.0.0)",
     "pydantic-extra-types[phone] (>=2.11.1,<3.0.0)",
-    "phonenumbers (>=9.0.33,<10.0.0)"
+    "phonenumbers (>=9.0.33,<10.0.0)",
+    "aiosqlite (>=0.22.1,<0.23.0)"
 ]
 
 
@@ -30,6 +31,7 @@ dev = [
     "typos (>=1.46.3,<2.0.0)",
     "httpx2 (>=2.4.0,<3.0.0)",
     "freezegun (>=1.5.5,<2.0.0)",
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
 ]
 
 [tool.ruff]
@@ -48,12 +50,13 @@ quote-style = 'single'
 selectin = "selectin"
 cliente = "cliente"
 
-[tool.pytest]
+[tool.pytest.ini_options]
 pythonpath = ['.']
 addopts = ['-p', 'no:warnings']
+asyncio_default_fixture_loop_scope = 'function'
 
 [tool.typos.files]
-extend-exclude = ["*.md"]
+extend-exclude = ["*.md", "migrations"]
 
 [tool.taskipy.tasks]
 pre_lint = 'typos'

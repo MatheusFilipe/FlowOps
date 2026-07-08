@@ -2,9 +2,10 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import Session
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from flowops.app import app
@@ -24,7 +25,7 @@ from flowops.models import (
 @contextmanager
 def _mock_db_time(
     *, model, time=datetime(2001, 9, 11, 8, 46, 0), order_preparation_time=0
-    ):
+):
     def fake_time_hook(mapper, connection, target):
         if hasattr(target, 'ordered_at'):
             target.ordered_at = time
@@ -43,21 +44,22 @@ def mock_db_time():
     return _mock_db_time
 
 
-@pytest.fixture
-def session():
-    engine = create_engine(
-        'sqlite:///:memory:',
+@pytest_asyncio.fixture
+async def session():
+    engine = create_async_engine(
+        'sqlite+aiosqlite:///:memory:',
         connect_args={'check_same_thread': False},
         poolclass=StaticPool,
     )
 
-    table_registry.metadata.create_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(table_registry.metadata.create_all)
 
-    with Session(engine) as session:
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
-    table_registry.metadata.drop_all(engine)
-    engine.dispose()
+    async with engine.begin() as conn:
+        await conn.run_sync(table_registry.metadata.drop_all)
 
 
 @pytest.fixture
@@ -72,8 +74,8 @@ def client(session):
     app.dependency_overrides.clear()
 
 
-@pytest.fixture
-def ingredient(session):
+@pytest_asyncio.fixture
+async def ingredient(session):
     ingredient = Ingredient(
         name='ingredient',
         unit_of_measure=UnitOfMeasure.unidade,
@@ -82,14 +84,14 @@ def ingredient(session):
     )
 
     session.add(ingredient)
-    session.commit()
-    session.refresh(ingredient)
+    await session.commit()
+    await session.refresh(ingredient)
 
     return ingredient
 
 
-@pytest.fixture
-def product(session, ingredient):
+@pytest_asyncio.fixture
+async def product(session, ingredient):
     product = Product(
         name='product',
         description='description',
@@ -98,27 +100,27 @@ def product(session, ingredient):
     )
 
     session.add(product)
-    session.commit()
-    session.refresh(product)
+    await session.commit()
+    await session.refresh(product)
 
     return product
 
 
-@pytest.fixture
-def product_ingredient(session, product, ingredient):
+@pytest_asyncio.fixture
+async def product_ingredient(session, product, ingredient):
     product_ingredient = ProductIngredient(
         product_id=product.id, ingredient_id=ingredient.id, quantity=5
     )
 
     session.add(product_ingredient)
-    session.commit()
-    session.refresh(product_ingredient)
+    await session.commit()
+    await session.refresh(product_ingredient)
 
     return product_ingredient
 
 
-@pytest.fixture
-def user(session):
+@pytest_asyncio.fixture
+async def user(session):
     user = User(
         name='user',
         phone='tel:+55-11-4002-8922',
@@ -126,14 +128,14 @@ def user(session):
     )
 
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
 
     return user
 
 
-@pytest.fixture
-def order(session, user, product, mock_db_time):
+@pytest_asyncio.fixture
+async def order(session, user, product, mock_db_time):
     with mock_db_time(
         model=Order, order_preparation_time=product.preparation_time
     ):
@@ -142,7 +144,7 @@ def order(session, user, product, mock_db_time):
             notes='notes',
         )
         session.add(order)
-        session.commit()
+        await session.commit()
 
     order_item = OrderItem(
         order_id=order.id,
@@ -154,7 +156,7 @@ def order(session, user, product, mock_db_time):
 
     order.final_amount = order_item.unit_price * order_item.quantity
 
-    session.commit()
-    session.refresh(order)
+    await session.commit()
+    await session.refresh(order)
 
     return order

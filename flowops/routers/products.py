@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowops.database import get_session
 from flowops.models import Ingredient, Product, ProductIngredient
@@ -16,12 +16,12 @@ from flowops.schemas import (
 
 router = APIRouter(prefix='/products', tags=['products'])
 
-Session = Annotated[Session, Depends(get_session)]
+Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=ProductPublic)
-def create_product(session: Session, schema: ProductSchema):
-    product = session.scalar(
+async def create_product(session: Session, schema: ProductSchema):
+    product = await session.scalar(
         select(Product).where(Product.name == schema.name)
     )
 
@@ -39,11 +39,13 @@ def create_product(session: Session, schema: ProductSchema):
     )
 
     session.add(product)
-    session.commit()
+    await session.commit()
 
     product_ingredients = []
     for id, quantity in schema.ingredients_quantity.items():
-        if not session.scalar(select(Ingredient).where(Ingredient.id == id)):
+        if not await session.scalar(
+            select(Ingredient).where(Ingredient.id == id)
+        ):
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
                 detail='Ingrediente não encontrado.',
@@ -56,17 +58,17 @@ def create_product(session: Session, schema: ProductSchema):
         product_ingredients.append(product_ingredient)
 
         session.add(product_ingredient)
-        session.commit()
-        session.refresh(product_ingredient)
+        await session.commit()
+        await session.refresh(product_ingredient)
 
-    session.refresh(product)
+    await session.refresh(product)
 
     return product
 
 
 @router.get('/', status_code=HTTPStatus.OK, response_model=ProductList)
-def list_products(session: Session):
-    products = session.scalars(select(Product))
+async def list_products(session: Session):
+    products = await session.scalars(select(Product))
 
     return {'products': products}
 
@@ -76,8 +78,12 @@ def list_products(session: Session):
     status_code=HTTPStatus.OK,
     response_model=ProductPublic,
 )
-def update_product(session: Session, product_id: int, schema: ProductUpdate):
-    product = session.scalar(select(Product).where(Product.id == product_id))
+async def update_product(
+    session: Session, product_id: int, schema: ProductUpdate
+):
+    product = await session.scalar(
+        select(Product).where(Product.id == product_id)
+    )
 
     if not product:
         raise HTTPException(
@@ -89,15 +95,17 @@ def update_product(session: Session, product_id: int, schema: ProductUpdate):
         setattr(product, key, value)
 
     session.add(product)
-    session.commit()
-    session.refresh(product)
+    await session.commit()
+    await session.refresh(product)
 
     return product
 
 
 @router.delete('/{product_id}', status_code=HTTPStatus.OK, response_model=dict)
-def delete_product(session: Session, product_id: int):
-    product = session.scalar(select(Product).where(Product.id == product_id))
+async def delete_product(session: Session, product_id: int):
+    product = await session.scalar(
+        select(Product).where(Product.id == product_id)
+    )
 
     if not product:
         raise HTTPException(
@@ -105,7 +113,7 @@ def delete_product(session: Session, product_id: int):
             detail='Produto não encontrado.',
         )
 
-    session.delete(product)
-    session.commit()
+    await session.delete(product)
+    await session.commit()
 
     return {'message': 'Produto deletado.'}

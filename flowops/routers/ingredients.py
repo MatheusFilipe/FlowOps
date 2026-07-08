@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowops.database import get_session
 from flowops.models import Ingredient
@@ -16,12 +16,12 @@ from flowops.schemas import (
 
 router = APIRouter(prefix='/ingredients', tags=['ingredients'])
 
-Session = Annotated[Session, Depends(get_session)]
+Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=IngredientPublic)
-def create_ingredient(session: Session, schema: IngredientSchema):
-    ingredient = session.scalar(
+async def create_ingredient(session: Session, schema: IngredientSchema):
+    ingredient = await session.scalar(
         select(Ingredient).where(Ingredient.name == schema.name)
     )
 
@@ -39,15 +39,15 @@ def create_ingredient(session: Session, schema: IngredientSchema):
     )
 
     session.add(ingredient)
-    session.commit()
-    session.refresh(ingredient)
+    await session.commit()
+    await session.refresh(ingredient)
 
     return ingredient
 
 
 @router.get('/', status_code=HTTPStatus.OK, response_model=IngredientList)
-def list_ingredients(session: Session):
-    ingredients = session.scalars(select(Ingredient))
+async def list_ingredients(session: Session):
+    ingredients = await session.scalars(select(Ingredient))
 
     return {'ingredients': ingredients}
 
@@ -57,10 +57,10 @@ def list_ingredients(session: Session):
     status_code=HTTPStatus.OK,
     response_model=IngredientPublic,
 )
-def update_ingredient(
+async def update_ingredient(
     session: Session, ingredient_id: int, schema: IngredientUpdate
 ):
-    ingredient = session.scalar(
+    ingredient = await session.scalar(
         select(Ingredient).where(Ingredient.id == ingredient_id)
     )
 
@@ -74,8 +74,8 @@ def update_ingredient(
         setattr(ingredient, key, value)
 
     session.add(ingredient)
-    session.commit()
-    session.refresh(ingredient)
+    await session.commit()
+    await session.refresh(ingredient)
 
     return ingredient
 
@@ -83,8 +83,8 @@ def update_ingredient(
 @router.delete(
     '/{ingredient_id}', status_code=HTTPStatus.OK, response_model=dict
 )
-def delete_ingredient(session: Session, ingredient_id: int):
-    ingredient = session.scalar(
+async def delete_ingredient(session: Session, ingredient_id: int):
+    ingredient = await session.scalar(
         select(Ingredient).where(Ingredient.id == ingredient_id)
     )
 
@@ -94,7 +94,7 @@ def delete_ingredient(session: Session, ingredient_id: int):
             detail='Ingrediente não encontrado.',
         )
 
-    session.delete(ingredient)
-    session.commit()
+    await session.delete(ingredient)
+    await session.commit()
 
     return {'message': 'Ingrediente deletado.'}

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowops.database import get_session
 from flowops.models import Order, OrderItem, Product, User
@@ -16,12 +16,14 @@ from flowops.schemas import (
 
 router = APIRouter(prefix='/orders', tags=['orders'])
 
-Session = Annotated[Session, Depends(get_session)]
+Session = Annotated[AsyncSession, Depends(get_session)]
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=OrderPublic)
-def create_order(session: Session, schema: OrderSchema):
-    if not session.scalar(select(User).where(User.id == schema.client_id)):
+async def create_order(session: Session, schema: OrderSchema):
+    if not await session.scalar(
+        select(User).where(User.id == schema.client_id)
+    ):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail='Cliente não encontrado.',
@@ -33,12 +35,12 @@ def create_order(session: Session, schema: OrderSchema):
     )
 
     session.add(order)
-    session.commit()
+    await session.commit()
 
     final_amount = 0
     order_preparation_time = 0
     for id, quantity in schema.product_quantity.items():
-        product = session.scalar(select(Product).where(Product.id == id))
+        product = await session.scalar(select(Product).where(Product.id == id))
         if not product:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND,
@@ -66,8 +68,8 @@ def create_order(session: Session, schema: OrderSchema):
     )
     setattr(order, 'estimated_ready_at', estimated_ready_at)
 
-    session.commit()
-    session.refresh(order)
+    await session.commit()
+    await session.refresh(order)
 
     return order
 
@@ -75,21 +77,23 @@ def create_order(session: Session, schema: OrderSchema):
 @router.get(
     '/{client_id}', status_code=HTTPStatus.OK, response_model=OrderList
 )
-def list_orders(session: Session, client_id: int):
-    if not session.scalar(select(User).where(User.id == client_id)):
+async def list_orders(session: Session, client_id: int):
+    if not await session.scalar(select(User).where(User.id == client_id)):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail='Cliente não encontrado.',
         )
 
-    orders = session.scalars(select(Order).where(Order.client_id == client_id))
+    orders = await session.scalars(
+        select(Order).where(Order.client_id == client_id)
+    )
 
     return {'orders': orders}
 
 
 @router.delete('/{order_id}', status_code=HTTPStatus.OK, response_model=dict)
-def delete_order(session: Session, order_id: int):
-    order = session.scalar(select(Order).where(Order.id == order_id))
+async def delete_order(session: Session, order_id: int):
+    order = await session.scalar(select(Order).where(Order.id == order_id))
 
     if not order:
         raise HTTPException(
@@ -97,7 +101,7 @@ def delete_order(session: Session, order_id: int):
             detail='Pedido não encontrado.',
         )
 
-    session.delete(order)
-    session.commit()
+    await session.delete(order)
+    await session.commit()
 
     return {'message': 'Pedido cancelado.'}
