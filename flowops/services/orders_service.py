@@ -6,13 +6,22 @@ from flowops.models import Product
 
 
 async def list_products(session):
-    products = await session.scalars(select(Product))  # group by tag
+    products = await session.scalars(select(Product))
+
+    group_by_tag = {}
+    for product in products:
+        if group_by_tag[product.tag]:
+            group_by_tag[product.tag].append(product)
+        else:
+            group_by_tag[product.tag] = [product]
 
     message = ''
-    for product in products:
-        message += f'{product.id}: {product.name}\n'
-        if product.description:
-            message += f'- {product.description}\n'
+    for tag, value in group_by_tag.items():
+        message += f'{tag}:'
+        for product in value:
+            message += f'{product.name} [Código: {product.id}]\n'
+            if product.description:
+                message += f'- {product.description}\n'
 
     return message
 

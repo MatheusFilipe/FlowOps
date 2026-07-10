@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from flowops.models import ProductTag
+
 
 def test_create_product(client, ingredient):
     response = client.post(
@@ -10,6 +12,7 @@ def test_create_product(client, ingredient):
             'preparation_time': 15,
             'price': 10,
             'ingredients_quantity': {ingredient.id: 5},
+            'tag': ProductTag.porcoes,
         },
     )
 
@@ -20,6 +23,7 @@ def test_create_product(client, ingredient):
         'description': 'description',
         'preparation_time': 15,
         'price': '10.0000000000',
+        'tag': ProductTag.porcoes,
     }
 
 
@@ -32,6 +36,7 @@ def test_create_product_conflict(client, product, ingredient):
             'preparation_time': 15,
             'price': 10,
             'ingredients_quantity': {ingredient.id: 5},
+            'tag': ProductTag.porcoes,
         },
     )
 
@@ -48,6 +53,7 @@ def test_create_product_ingredient_not_found(client):
             'preparation_time': 15,
             'price': 10,
             'ingredients_quantity': {67: 5},
+            'tag': ProductTag.porcoes,
         },
     )
 
@@ -67,6 +73,7 @@ def test_list_products(client, product):
                 'name': 'product',
                 'preparation_time': 15,
                 'price': '10.0000000000',
+                'tag': ProductTag.porcoes,
             }
         ]
     }
@@ -89,6 +96,7 @@ def test_update_product(client, product):
         'description': 'description',
         'preparation_time': 15,
         'price': '10.0000000000',
+        'tag': ProductTag.porcoes,
     }
 
 

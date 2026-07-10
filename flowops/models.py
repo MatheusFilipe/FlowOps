@@ -14,6 +14,12 @@ class UnitOfMeasure(str, Enum):
     unidade = 'Unidade(s)'
 
 
+class ProductTag(str, Enum):
+    bebidas = 'Bebida'
+    hamburgueres = 'Hambúrgueres'
+    porcoes = 'Porções'
+
+
 @table_registry.mapped_as_dataclass
 class User:
     __tablename__ = 'users'
@@ -35,7 +41,7 @@ class Order:
         init=False, server_default=func.now()
     )
     client_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
-    notes: Mapped[str] = mapped_column(nullable=True)
+    notes: Mapped[str] = mapped_column(init=False, nullable=True)
     final_amount: Mapped[Decimal] = mapped_column(
         init=False, default=Decimal('0.00')
     )
@@ -81,6 +87,7 @@ class Product:
     description: Mapped[str]
     preparation_time: Mapped[int]  # minutes
     price: Mapped[Decimal]
+    tag: Mapped[ProductTag]
 
     order_items: Mapped[list['OrderItem']] = relationship(
         init=False, back_populates='product', lazy='noload'

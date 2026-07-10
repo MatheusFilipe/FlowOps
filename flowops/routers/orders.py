@@ -29,10 +29,7 @@ async def create_order(session: Session, schema: OrderSchema):
             detail='Cliente não encontrado.',
         )
 
-    order = Order(
-        client_id=schema.client_id,
-        notes=schema.notes,
-    )
+    order = Order(client_id=schema.client_id)
 
     session.add(order)
     await session.commit()
@@ -61,6 +58,7 @@ async def create_order(session: Session, schema: OrderSchema):
 
         session.add(order_item)
 
+    setattr(order, 'notes', schema.notes)
     setattr(order, 'final_amount', final_amount)
 
     estimated_ready_at = order.ordered_at + timedelta(

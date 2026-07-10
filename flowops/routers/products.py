@@ -36,6 +36,7 @@ async def create_product(session: Session, schema: ProductSchema):
         description=schema.description,
         preparation_time=schema.preparation_time,
         price=schema.price,
+        tag=schema.tag,
     )
 
     session.add(product)

@@ -16,6 +16,7 @@ from flowops.models import (
     OrderItem,
     Product,
     ProductIngredient,
+    ProductTag,
     UnitOfMeasure,
     User,
     table_registry,
@@ -97,6 +98,7 @@ async def product(session, ingredient):
         description='description',
         preparation_time=15,
         price=10,
+        tag=ProductTag.porcoes,
     )
 
     session.add(product)
@@ -139,12 +141,11 @@ async def order(session, user, product, mock_db_time):
     with mock_db_time(
         model=Order, order_preparation_time=product.preparation_time
     ):
-        order = Order(
-            client_id=user.id,
-            notes='notes',
-        )
+        order = Order(client_id=user.id)
         session.add(order)
         await session.commit()
+
+    setattr(order, 'notes', 'notes')
 
     order_item = OrderItem(
         order_id=order.id,
