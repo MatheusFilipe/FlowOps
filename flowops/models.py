@@ -107,7 +107,7 @@ class ProductIngredient:
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     product_id: Mapped[int] = mapped_column(ForeignKey('products.id'))
     ingredient_id: Mapped[int] = mapped_column(ForeignKey('ingredients.id'))
-    quantity: Mapped[Decimal]
+    quantity: Mapped[float]
 
     product: Mapped['Product'] = relationship(
         init=False, back_populates='product_ingredients', lazy='joined'
@@ -124,8 +124,8 @@ class Ingredient:
     id: Mapped[int] = mapped_column(init=False, primary_key=True)
     name: Mapped[str]
     unit_of_measure: Mapped[UnitOfMeasure]
-    minimum: Mapped[Decimal]
-    quantity: Mapped[Decimal]
+    minimum: Mapped[float]
+    quantity: Mapped[float]
 
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
         init=False, back_populates='ingredient', lazy='noload'

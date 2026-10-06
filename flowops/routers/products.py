@@ -40,9 +40,9 @@ async def create_product(session: Session, schema: ProductSchema):
     )
 
     session.add(product)
-    await session.commit()
+    await session.flush()
 
-    product_ingredients = []
+    # product_ingredients = []
     for id, quantity in schema.ingredients_quantity.items():
         if not await session.scalar(
             select(Ingredient).where(Ingredient.id == id)
@@ -56,7 +56,7 @@ async def create_product(session: Session, schema: ProductSchema):
             product_id=product.id, ingredient_id=id, quantity=quantity
         )
 
-        product_ingredients.append(product_ingredient)
+        # product_ingredients.append(product_ingredient)
 
         session.add(product_ingredient)
         await session.commit()

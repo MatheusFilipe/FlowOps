@@ -81,7 +81,7 @@ async def ingredient(session):
         name='ingredient',
         unit_of_measure=UnitOfMeasure.unidade,
         minimum='10',
-        quantity='0',
+        quantity='20',
     )
 
     session.add(ingredient)
@@ -102,23 +102,75 @@ async def product(session, ingredient):
     )
 
     session.add(product)
-    await session.commit()
-    await session.refresh(product)
+    # flush gera o ID no banco sem commitar a transação global do teste
+    await session.flush()
 
-    return product
-
-
-@pytest_asyncio.fixture
-async def product_ingredient(session, product, ingredient):
     product_ingredient = ProductIngredient(
         product_id=product.id, ingredient_id=ingredient.id, quantity=5
     )
 
     session.add(product_ingredient)
+
     await session.commit()
     await session.refresh(product_ingredient)
+    await session.refresh(product, attribute_names=['product_ingredients'])
+    print(product)
 
-    return product_ingredient
+    return product
+
+
+@pytest_asyncio.fixture
+async def product_insufficient_ingredient(session, ingredient):
+    product = Product(
+        name='product',
+        description='description',
+        preparation_time=15,
+        price=10,
+        tag=ProductTag.porcoes,
+    )
+
+    session.add(product)
+    await session.flush()
+
+    product_ingredient = ProductIngredient(
+        product_id=product.id, ingredient_id=ingredient.id, quantity=67
+    )
+
+    session.add(product_ingredient)
+
+    await session.commit()
+    await session.refresh(product_ingredient)
+    await session.refresh(product, attribute_names=['product_ingredients'])
+    print(product)
+
+    return product
+
+
+@pytest_asyncio.fixture
+async def product_not_found_ingredient(session):
+    product = Product(
+        name='product',
+        description='description',
+        preparation_time=15,
+        price=10,
+        tag=ProductTag.porcoes,
+    )
+
+    session.add(product)
+    await session.flush()
+
+    product_ingredient = ProductIngredient(
+        product_id=product.id, ingredient_id=67, quantity=1
+    )
+
+    session.add(product_ingredient)
+
+    await session.commit()
+    await session.refresh(product_ingredient)
+    await session.refresh(product, attribute_names=['product_ingredients'])
+    print(product)
+
+    return product
 
 
 @pytest_asyncio.fixture

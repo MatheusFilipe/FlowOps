@@ -72,8 +72,8 @@ def test_list_products(client, product):
                 'id': 1,
                 'name': 'product',
                 'preparation_time': 15,
-                'price': '10.0000000000',
-                'tag': ProductTag.porcoes,
+                'price': '10',
+                'tag': ProductTag.porcoes.value,
             }
         ]
     }

@@ -19,8 +19,8 @@ def test_create_ingredient(client):
         'id': 1,
         'name': 'teste',
         'unit_of_measure': UnitOfMeasure.litro.value,
-        'minimum': '7.5000000000',
-        'quantity': '0E-10',
+        'minimum': 7.5,
+        'quantity': 0,
     }
 
 
@@ -47,9 +47,9 @@ def test_list_ingredients(client, ingredient):
         'ingredients': [
             {
                 'id': 1,
-                'minimum': '10.0000000000',
+                'minimum': 10,
                 'name': 'ingredient',
-                'quantity': '0E-10',
+                'quantity': 20,
                 'unit_of_measure': 'Unidade(s)',
             }
         ]
@@ -71,9 +71,9 @@ def test_update_ingredient(client, ingredient):
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         'id': 1,
-        'minimum': '10.0000000000',
+        'minimum': 10,
         'name': 'test',
-        'quantity': '0E-10',
+        'quantity': 20,
         'unit_of_measure': 'Unidade(s)',
     }
 

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowops.database import get_session
-from flowops.models import Order, OrderItem, Product, User
+from flowops.models import Ingredient, Order, OrderItem, Product, User
 from flowops.schemas import (
     OrderList,
     OrderPublic,
@@ -17,6 +17,46 @@ from flowops.schemas import (
 router = APIRouter(prefix='/orders', tags=['orders'])
 
 Session = Annotated[AsyncSession, Depends(get_session)]
+
+
+async def subtract_ingredients_from_stock(required, session: Session):
+    for i in required:
+        ingredient = await session.scalar(
+            select(Ingredient).where(Ingredient.id == i)
+        )
+
+        setattr(ingredient, str(i), ingredient.quantity - required[i])
+        session.add(ingredient)
+        await session.commit()
+        await session.refresh(ingredient)
+
+
+async def check_ingredients_availability(product, session: Session):
+    required = {}
+    for p in product.product_ingredients:
+        required[p.ingredient_id] = p.quantity
+
+    available = {}
+    for ingredient_id in required.keys():
+        ingredient = await session.scalar(
+            select(Ingredient).where(Ingredient.id == ingredient_id)
+        )
+        if not ingredient:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail='Ingrediente não encontrado.',
+            )
+
+        available[ingredient.id] = ingredient.quantity
+
+    for k in required.items():
+        if required[k[0]] > available[k[0]]:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                detail='Quantidade de ingrediente em estoque insuficiente.',
+            )
+
+    await subtract_ingredients_from_stock(required, session)
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=OrderPublic)
@@ -44,19 +84,20 @@ async def create_order(session: Session, schema: OrderSchema):
                 detail='Produto não encontrado.',
             )
 
-        order_item = OrderItem(
-            order_id=order.id,
-            product_id=id,
-            quantity=quantity,
-            unit_price=product.price,
-        )
+        if not await check_ingredients_availability(product, session):
+            order_item = OrderItem(
+                order_id=order.id,
+                product_id=id,
+                quantity=quantity,
+                unit_price=product.price,
+            )
 
-        final_amount += product.price * quantity
-        order_preparation_time = max(
-            order_preparation_time, product.preparation_time
-        )
+            final_amount += product.price * quantity
+            order_preparation_time = max(
+                order_preparation_time, product.preparation_time
+            )
 
-        session.add(order_item)
+            session.add(order_item)
 
     setattr(order, 'notes', schema.notes)
     setattr(order, 'final_amount', final_amount)

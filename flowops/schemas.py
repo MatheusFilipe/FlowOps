@@ -10,8 +10,8 @@ from flowops.models import ProductTag, UnitOfMeasure
 class IngredientSchema(BaseModel):
     name: str
     unit_of_measure: UnitOfMeasure
-    minimum: Decimal
-    quantity: Decimal
+    minimum: float
+    quantity: float
 
 
 class IngredientPublic(IngredientSchema):
@@ -25,8 +25,8 @@ class IngredientList(BaseModel):
 class IngredientUpdate(BaseModel):
     name: str | None = None
     unit_of_measure: UnitOfMeasure | None = None
-    minimum: Decimal | None = None
-    quantity: Decimal | None = None
+    minimum: float | None = None
+    quantity: float | None = None
 
 
 class ProductSchema(BaseModel):
