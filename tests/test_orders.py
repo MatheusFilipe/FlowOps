@@ -88,6 +88,28 @@ def test_create_order_not_found_ingredient(
     assert response.json() == {'detail': 'Ingrediente não encontrado.'}
 
 
+def test_subtract_ingredients_from_stock(
+    client, user, ingredient, product
+):
+    initial_quantity = ingredient.quantity
+
+    response = client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 1},
+        },
+    )
+
+    final_quantity = product.product_ingredients[0].ingredient.quantity
+
+    assert response.status_code == HTTPStatus.OK
+    assert final_quantity == (
+        initial_quantity - product.product_ingredients[0].quantity
+    )
+
+
 def test_list_orders(client, order, user):
     response = client.get(f'/orders/{user.id}')
 

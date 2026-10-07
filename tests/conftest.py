@@ -114,7 +114,6 @@ async def product(session, ingredient):
     await session.commit()
     await session.refresh(product_ingredient)
     await session.refresh(product, attribute_names=['product_ingredients'])
-    print(product)
 
     return product
 
@@ -141,7 +140,6 @@ async def product_insufficient_ingredient(session, ingredient):
     await session.commit()
     await session.refresh(product_ingredient)
     await session.refresh(product, attribute_names=['product_ingredients'])
-    print(product)
 
     return product
 
@@ -168,7 +166,6 @@ async def product_not_found_ingredient(session):
     await session.commit()
     await session.refresh(product_ingredient)
     await session.refresh(product, attribute_names=['product_ingredients'])
-    print(product)
 
     return product
 
