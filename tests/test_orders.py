@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from flowops.models import Order
+from flowops.models import Order, OrderStatus
 
 
 def test_create_order(client, user, product, mock_db_time):
@@ -23,6 +23,7 @@ def test_create_order(client, user, product, mock_db_time):
         'ordered_at': '2001-09-11T08:46:00',
         'final_amount': '20.0000000000',
         'estimated_ready_at': '2001-09-11T09:01:00',
+        'status': 'Em fila de espera',
     }
 
 
@@ -88,9 +89,7 @@ def test_create_order_not_found_ingredient(
     assert response.json() == {'detail': 'Ingrediente não encontrado.'}
 
 
-def test_subtract_ingredients_from_stock(
-    client, user, ingredient, product
-):
+def test_subtract_ingredients_from_stock(client, user, ingredient, product):
     initial_quantity = ingredient.quantity
 
     response = client.post(
@@ -122,6 +121,7 @@ def test_list_orders(client, order, user):
                 'ordered_at': '2001-09-11T08:46:00',
                 'final_amount': '20.0000000000',
                 'estimated_ready_at': '2001-09-11T09:01:00',
+                'status': 'Em fila de espera',
             }
         ]
     }
@@ -141,15 +141,80 @@ def test_list_orders_client_not_found(client):
     assert response.json() == {'detail': 'Cliente não encontrado.'}
 
 
-def test_delete_order(client, order):
-    response = client.delete(f'/orders/{order.id}')
+def test_cancel_order(client, order):
+    response = client.post(
+        f'/orders/{order.id}', json={'reason': 'Tempo de espera.'}
+    )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {'message': 'Pedido cancelado.'}
+    assert order.status == OrderStatus.canceled
+    assert response.json() == {'reason': 'Tempo de espera.'}
 
 
-def test_delete_order_not_found(client):
-    response = client.delete('/orders/67')
+def test_cancel_order_not_found(client):
+    response = client.post('/orders/67', json={'reason': '.'})
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'Pedido não encontrado.'}
+
+
+def test_cancel_order_being_prepared(client, order):
+    order.status = OrderStatus.being_prepared
+    response = client.post(
+        f'/orders/{order.id}', json={'reason': 'Tempo de espera.'}
+    )
+
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json() == {
+        'detail': (
+            'O pedido não pode ser cancelado porque já está em preparação.'
+        )
+    }
+
+
+def test_cancel_order_completed(client, order):
+    order.status = OrderStatus.completed
+    response = client.post(
+        f'/orders/{order.id}', json={'reason': 'Tempo de espera.'}
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
+    assert response.json() == {
+        'detail': 'O pedido não pode ser cancelado porque já está finalizado.'
+    }
+
+
+def test_cancel_order_canceled(client, order):
+    order.status = OrderStatus.canceled
+    response = client.post(
+        f'/orders/{order.id}', json={'reason': 'Tempo de espera.'}
+    )
+
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json() == {
+        'detail': 'O pedido não pode ser cancelado porque já está cancelado.'
+    }
+
+
+def test_restock_ingredients(client, user, ingredient, product):
+    initial_quantity = ingredient.quantity
+
+    order_response = client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 1},
+        },
+    )
+    order = order_response.json()
+
+    subtract = product.product_ingredients[0].ingredient.quantity
+
+    client.post(f'/orders/{order['id']}', json={'reason': 'Tempo de espera.'})
+    restock = product.product_ingredients[0].ingredient.quantity
+
+    assert subtract == (
+        initial_quantity - product.product_ingredients[0].quantity
+    )
+    assert restock == initial_quantity

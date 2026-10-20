@@ -7,8 +7,16 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from flowops.database import get_session
-from flowops.models import Ingredient, Order, OrderItem, Product, User
+from flowops.models import (
+    Ingredient,
+    Order,
+    OrderItem,
+    OrderStatus,
+    Product,
+    User,
+)
 from flowops.schemas import (
+    OrderCancel,
     OrderList,
     OrderPublic,
     OrderSchema,
@@ -57,6 +65,16 @@ async def check_ingredients_availability(product, session):
             )
 
     await subtract_ingredients_from_stock(required, session)
+
+
+def restock_ingredients(order):
+    for order_item in order.order_items:
+        product_quantity = order_item.quantity
+        for product_ingredient in order_item.product.product_ingredients:
+            ingredient_quantity = product_ingredient.quantity
+            ingredient = product_ingredient.ingredient
+
+            ingredient.quantity += product_quantity * ingredient_quantity
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=OrderPublic)
@@ -131,8 +149,8 @@ async def list_orders(session: Session, client_id: int):
     return {'orders': orders}
 
 
-@router.delete('/{order_id}', status_code=HTTPStatus.OK, response_model=dict)
-async def delete_order(session: Session, order_id: int):
+@router.post('/{order_id}', status_code=HTTPStatus.OK, response_model=dict)
+async def cancel_order(session: Session, order_id: int, schema: OrderCancel):
     order = await session.scalar(select(Order).where(Order.id == order_id))
 
     if not order:
@@ -141,7 +159,30 @@ async def delete_order(session: Session, order_id: int):
             detail='Pedido não encontrado.',
         )
 
-    await session.delete(order)
-    await session.commit()
+    if order.status == OrderStatus.being_prepared:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail=(
+                'O pedido não pode ser cancelado porque já está em preparação.'
+            ),
+        )
+    elif order.status == OrderStatus.completed:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_CONTENT,
+            detail=(
+                'O pedido não pode ser cancelado porque já está finalizado.'
+            ),
+        )
+    elif order.status == OrderStatus.canceled:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='O pedido não pode ser cancelado porque já está cancelado.',
+        )
 
-    return {'message': 'Pedido cancelado.'}
+    restock_ingredients(order)
+
+    order.status = OrderStatus.canceled
+    await session.commit()
+    await session.refresh(order)
+
+    return {'reason': schema.reason}

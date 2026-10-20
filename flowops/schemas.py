@@ -4,7 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from flowops.models import ProductTag, UnitOfMeasure
+from flowops.models import OrderStatus, ProductTag, UnitOfMeasure
 
 
 class IngredientSchema(BaseModel):
@@ -91,6 +91,7 @@ class OrderPublic(BaseModel):
     notes: str
     final_amount: Decimal
     estimated_ready_at: datetime
+    status: OrderStatus
 
 
 class OrderList(BaseModel):
@@ -102,3 +103,8 @@ class OrderUpdate(BaseModel):
     ordered_at: datetime | None = None
     notes: str | None = None
     product_quantity: dict | None = None
+    status: OrderStatus | None = None
+
+
+class OrderCancel(BaseModel):
+    reason: str

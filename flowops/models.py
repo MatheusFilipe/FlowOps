@@ -20,6 +20,13 @@ class ProductTag(str, Enum):
     porcoes = 'Porções'
 
 
+class OrderStatus(str, Enum):
+    queued = 'Em fila de espera'
+    being_prepared = 'Em preparação'
+    completed = 'Finalizado'
+    canceled = 'Cancelado'
+
+
 @table_registry.mapped_as_dataclass
 class User:
     __tablename__ = 'users'
@@ -48,6 +55,7 @@ class Order:
     estimated_ready_at: Mapped[datetime] = mapped_column(
         init=False, default=func.now()
     )
+    status: Mapped[OrderStatus] = mapped_column(default=OrderStatus.queued)
 
     client: Mapped['User'] = relationship(
         init=False, back_populates='orders', lazy='joined'
