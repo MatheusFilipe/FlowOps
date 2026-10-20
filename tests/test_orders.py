@@ -86,7 +86,9 @@ def test_create_order_not_found_ingredient(
     )
 
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'Ingrediente não encontrado.'}
+    assert response.json() == {
+        'detail': 'Um ou mais ingredientes não foram encontrados.'
+    }
 
 
 def test_subtract_ingredients_from_stock(client, user, ingredient, product):

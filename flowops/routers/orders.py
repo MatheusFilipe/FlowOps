@@ -27,44 +27,31 @@ router = APIRouter(prefix='/orders', tags=['orders'])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def subtract_ingredients_from_stock(required, session):
-    for i in required:
-        ingredient = await session.scalar(
-            select(Ingredient).where(Ingredient.id == i)
+async def check_and_subtract_from_stock(product, session):
+    required = {
+        p.ingredient_id: p.quantity for p in product.product_ingredients
+    }
+
+    stmt = select(Ingredient).where(Ingredient.id.in_(required.keys()))
+    result = await session.scalars(stmt)
+    ingredients = result.all()
+
+    if len(ingredients) != len(required):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='Um ou mais ingredientes não foram encontrados.',
         )
 
-        setattr(ingredient, 'quantity', ingredient.quantity - required[i])
-        session.add(ingredient)
-        await session.commit()
-        await session.refresh(ingredient)
+    for ingredient in ingredients:
+        required_qty = required[ingredient.id]
 
-
-async def check_ingredients_availability(product, session):
-    required = {}
-    for p in product.product_ingredients:
-        required[p.ingredient_id] = p.quantity
-
-    available = {}
-    for ingredient_id in required.keys():
-        ingredient = await session.scalar(
-            select(Ingredient).where(Ingredient.id == ingredient_id)
-        )
-        if not ingredient:
-            raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND,
-                detail='Ingrediente não encontrado.',
-            )
-
-        available[ingredient.id] = ingredient.quantity
-
-    for k in required.items():
-        if required[k[0]] > available[k[0]]:
+        if required_qty > ingredient.quantity:
             raise HTTPException(
                 status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 detail='Quantidade de ingrediente em estoque insuficiente.',
             )
 
-    await subtract_ingredients_from_stock(required, session)
+        ingredient.quantity -= required_qty
 
 
 def restock_ingredients(order):
@@ -90,7 +77,7 @@ async def create_order(session: Session, schema: OrderSchema):
     order = Order(client_id=schema.client_id)
 
     session.add(order)
-    await session.commit()
+    await session.flush()
 
     final_amount = 0
     order_preparation_time = 0
@@ -102,7 +89,7 @@ async def create_order(session: Session, schema: OrderSchema):
                 detail='Produto não encontrado.',
             )
 
-        await check_ingredients_availability(product, session)
+        await check_and_subtract_from_stock(product, session)
 
         order_item = OrderItem(
             order_id=order.id,
@@ -183,6 +170,5 @@ async def cancel_order(session: Session, order_id: int, schema: OrderCancel):
 
     order.status = OrderStatus.canceled
     await session.commit()
-    await session.refresh(order)
 
     return {'reason': schema.reason}
