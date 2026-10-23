@@ -31,6 +31,12 @@ async def create_ingredient(session: Session, schema: IngredientSchema):
             detail='Ingrediente já cadastrado.',
         )
 
+    if schema.quantity < 0:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_CONTENT,
+            detail='A quantidade não pode ser negativa.'
+        )
+
     ingredient = Ingredient(
         name=schema.name,
         unit_of_measure=schema.unit_of_measure,

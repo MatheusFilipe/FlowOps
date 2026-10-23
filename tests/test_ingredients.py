@@ -39,6 +39,21 @@ def test_create_ingredient_conflict(client, ingredient):
     assert response.json() == {'detail': 'Ingrediente já cadastrado.'}
 
 
+def test_create_ingredient_negative_quantity(client):
+    response = client.post(
+        '/ingredients/',
+        json={
+            'name': 'teste',
+            'unit_of_measure': UnitOfMeasure.litro,
+            'minimum': 7.5,
+            'quantity': -1,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
+    assert response.json() == {'detail': 'A quantidade não pode ser negativa.'}
+
+
 def test_list_ingredients(client, ingredient):
     response = client.get('/ingredients/')
 

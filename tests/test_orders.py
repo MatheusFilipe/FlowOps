@@ -55,21 +55,30 @@ def test_create_order_product_not_found(client, user):
     assert response.json() == {'detail': 'Produto não encontrado.'}
 
 
-def test_create_order_missing_ingredients(
-    client, user, product_insufficient_ingredient
+def test_create_order_insufficient_stock(
+    client, user, product
 ):
+    quantity = 67
     response = client.post(
         '/orders/',
         json={
             'client_id': user.id,
             'notes': 'notes',
-            'product_quantity': {product_insufficient_ingredient.id: 1},
+            'product_quantity': {product.id: quantity},
         },
     )
 
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    product_ingredient = [p_i for p_i in product.product_ingredients][0]
+    ingredient = product_ingredient.ingredient
+    required_qty = product_ingredient.quantity * quantity
+
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
     assert response.json() == {
-        'detail': 'Quantidade de ingrediente em estoque insuficiente.'
+        'detail': (
+                    f'Estoque insuficiente para o ingrediente '
+                    f'"{ingredient.name}". Disponível: {ingredient.quantity}. '
+                    f'Requerido: {required_qty}.'
+                )
     }
 
 

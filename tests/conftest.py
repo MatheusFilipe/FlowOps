@@ -119,32 +119,6 @@ async def product(session, ingredient):
 
 
 @pytest_asyncio.fixture
-async def product_insufficient_ingredient(session, ingredient):
-    product = Product(
-        name='product',
-        description='description',
-        preparation_time=15,
-        price=10,
-        tag=ProductTag.porcoes,
-    )
-
-    session.add(product)
-    await session.flush()
-
-    product_ingredient = ProductIngredient(
-        product_id=product.id, ingredient_id=ingredient.id, quantity=67
-    )
-
-    session.add(product_ingredient)
-
-    await session.commit()
-    await session.refresh(product_ingredient)
-    await session.refresh(product, attribute_names=['product_ingredients'])
-
-    return product
-
-
-@pytest_asyncio.fixture
 async def product_not_found_ingredient(session):
     product = Product(
         name='product',

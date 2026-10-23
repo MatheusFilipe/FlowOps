@@ -59,9 +59,10 @@ async def create_product(session: Session, schema: ProductSchema):
         # product_ingredients.append(product_ingredient)
 
         session.add(product_ingredient)
-        await session.commit()
+        await session.flush()
         await session.refresh(product_ingredient)
 
+    await session.commit()
     await session.refresh(product)
 
     return product

@@ -27,7 +27,7 @@ router = APIRouter(prefix='/orders', tags=['orders'])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def check_and_subtract_from_stock(product, session):
+async def check_and_subtract_from_stock(product, product_qty, session):
     required = {
         p.ingredient_id: p.quantity for p in product.product_ingredients
     }
@@ -43,12 +43,16 @@ async def check_and_subtract_from_stock(product, session):
         )
 
     for ingredient in ingredients:
-        required_qty = required[ingredient.id]
+        required_qty = required[ingredient.id] * product_qty
 
         if required_qty > ingredient.quantity:
             raise HTTPException(
-                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                detail='Quantidade de ingrediente em estoque insuficiente.',
+                status_code=HTTPStatus.UNPROCESSABLE_CONTENT,
+                detail=(
+                    f'Estoque insuficiente para o ingrediente '
+                    f'"{ingredient.name}". Disponível: {ingredient.quantity}. '
+                    f'Requerido: {required_qty}.'
+                )
             )
 
         ingredient.quantity -= required_qty
@@ -89,7 +93,7 @@ async def create_order(session: Session, schema: OrderSchema):
                 detail='Produto não encontrado.',
             )
 
-        await check_and_subtract_from_stock(product, session)
+        await check_and_subtract_from_stock(product, quantity, session)
 
         order_item = OrderItem(
             order_id=order.id,
