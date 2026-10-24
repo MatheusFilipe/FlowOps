@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import JSON, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
@@ -61,6 +61,7 @@ class Order:
     estimated_ready_at: Mapped[datetime] = mapped_column(
         init=False, default=func.now()
     )
+    ingredients_qty: Mapped[dict] = mapped_column(JSON)
     status: Mapped[OrderStatus] = mapped_column(default=OrderStatus.queued)
 
     client: Mapped['User'] = relationship(

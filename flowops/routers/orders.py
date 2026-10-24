@@ -28,7 +28,8 @@ router = APIRouter(prefix='/orders', tags=['orders'])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-async def check_and_subtract_from_stock(product, product_qty, session):
+async def check_and_subtract_from_stock(order, product, product_qty, session):
+    ingredients_qty = {}
     required = {
         p.ingredient_id: p.quantity for p in product.product_ingredients
     }
@@ -56,20 +57,21 @@ async def check_and_subtract_from_stock(product, product_qty, session):
                 ),
             )
 
+        ingredients_qty[ingredient.id] = required_qty
         ingredient.quantity -= required_qty
         ingredient.status = check_stock(
             ingredient.quantity, ingredient.minimum
         )
 
+    order.ingredients_qty = ingredients_qty
+
 
 def restock_ingredients(order):
     for order_item in order.order_items:
-        product_quantity = order_item.quantity
         for product_ingredient in order_item.product.product_ingredients:
-            ingredient_quantity = product_ingredient.quantity
             ingredient = product_ingredient.ingredient
 
-            ingredient.quantity += product_quantity * ingredient_quantity
+            ingredient.quantity += order.ingredients_qty[str(ingredient.id)]  # JSON Key --> string
             ingredient.status = check_stock(
                 ingredient.quantity, ingredient.minimum
             )
@@ -85,7 +87,7 @@ async def create_order(session: Session, schema: OrderSchema):
             detail='Cliente não encontrado.',
         )
 
-    order = Order(client_id=schema.client_id)
+    order = Order(client_id=schema.client_id, ingredients_qty={})
 
     session.add(order)
     await session.flush()
@@ -100,7 +102,7 @@ async def create_order(session: Session, schema: OrderSchema):
                 detail='Produto não encontrado.',
             )
 
-        await check_and_subtract_from_stock(product, quantity, session)
+        await check_and_subtract_from_stock(order, product, quantity, session)
 
         order_item = OrderItem(
             order_id=order.id,

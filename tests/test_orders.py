@@ -24,6 +24,7 @@ def test_create_order(client, user, product, mock_db_time):
         'final_amount': '20.0000000000',
         'estimated_ready_at': '2001-09-11T09:01:00',
         'status': 'Em fila de espera',
+        'ingredients_qty': {'1': 10.0}
     }
 
 
@@ -185,6 +186,7 @@ def test_list_orders(client, order, user):
                 'final_amount': '20.0000000000',
                 'estimated_ready_at': '2001-09-11T09:01:00',
                 'status': 'Em fila de espera',
+                'ingredients_qty': {'1': 10.0}
             }
         ]
     }

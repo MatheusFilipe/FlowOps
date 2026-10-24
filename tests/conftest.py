@@ -161,23 +161,29 @@ async def user(session):
 
 
 @pytest_asyncio.fixture
-async def order(session, user, product, mock_db_time):
+async def order(session, user, product, ingredient, mock_db_time):
     with mock_db_time(
         model=Order, order_preparation_time=product.preparation_time
     ):
-        order = Order(client_id=user.id)
+        order = Order(client_id=user.id, ingredients_qty={})
         session.add(order)
         await session.commit()
 
     setattr(order, 'notes', 'notes')
 
+    qty = 2
+
     order_item = OrderItem(
         order_id=order.id,
         product_id=product.id,
-        quantity=2,
+        quantity=qty,
         unit_price=product.price,
     )
     session.add(order_item)
+
+    order.ingredients_qty = {
+        ingredient.id: product.product_ingredients[0].quantity * qty
+    }
 
     order.final_amount = order_item.unit_price * order_item.quantity
 

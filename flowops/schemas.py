@@ -99,6 +99,7 @@ class OrderPublic(BaseModel):
     final_amount: Decimal
     estimated_ready_at: datetime
     status: OrderStatus
+    ingredients_qty: dict
 
 
 class OrderList(BaseModel):
