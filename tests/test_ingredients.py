@@ -1,9 +1,53 @@
 from http import HTTPStatus
 
-from flowops.models import UnitOfMeasure
+from flowops.models import IngredientStatus, UnitOfMeasure
 
 
-def test_create_ingredient(client):
+def test_create_ingredient_ok(client):
+    response = client.post(
+        '/ingredients/',
+        json={
+            'name': 'teste',
+            'unit_of_measure': UnitOfMeasure.litro,
+            'minimum': 7.5,
+            'quantity': 10,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        'id': 1,
+        'name': 'teste',
+        'unit_of_measure': UnitOfMeasure.litro.value,
+        'minimum': 7.5,
+        'quantity': 10,
+        'status': IngredientStatus.ok,
+    }
+
+
+def test_create_ingredient_low_stock(client):
+    response = client.post(
+        '/ingredients/',
+        json={
+            'name': 'teste',
+            'unit_of_measure': UnitOfMeasure.litro,
+            'minimum': 7.5,
+            'quantity': 5,
+        },
+    )
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        'id': 1,
+        'name': 'teste',
+        'unit_of_measure': UnitOfMeasure.litro.value,
+        'minimum': 7.5,
+        'quantity': 5,
+        'status': IngredientStatus.low_stock,
+    }
+
+
+def test_create_ingredient_out_of_stock(client):
     response = client.post(
         '/ingredients/',
         json={
@@ -21,6 +65,7 @@ def test_create_ingredient(client):
         'unit_of_measure': UnitOfMeasure.litro.value,
         'minimum': 7.5,
         'quantity': 0,
+        'status': IngredientStatus.out_of_stock,
     }
 
 
@@ -66,6 +111,7 @@ def test_list_ingredients(client, ingredient):
                 'name': 'ingredient',
                 'quantity': 20,
                 'unit_of_measure': 'Unidade(s)',
+                'status': IngredientStatus.ok,
             }
         ]
     }
@@ -90,6 +136,7 @@ def test_update_ingredient(client, ingredient):
         'name': 'test',
         'quantity': 20,
         'unit_of_measure': 'Unidade(s)',
+        'status': IngredientStatus.ok,
     }
 
 

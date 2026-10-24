@@ -15,6 +15,7 @@ from flowops.models import (
     Product,
     User,
 )
+from flowops.routers.ingredients import check_stock
 from flowops.schemas import (
     OrderCancel,
     OrderList,
@@ -52,10 +53,13 @@ async def check_and_subtract_from_stock(product, product_qty, session):
                     f'Estoque insuficiente para o ingrediente '
                     f'"{ingredient.name}". Disponível: {ingredient.quantity}. '
                     f'Requerido: {required_qty}.'
-                )
+                ),
             )
 
         ingredient.quantity -= required_qty
+        ingredient.status = check_stock(
+            ingredient.quantity, ingredient.minimum
+        )
 
 
 def restock_ingredients(order):
@@ -66,6 +70,9 @@ def restock_ingredients(order):
             ingredient = product_ingredient.ingredient
 
             ingredient.quantity += product_quantity * ingredient_quantity
+            ingredient.status = check_stock(
+                ingredient.quantity, ingredient.minimum
+            )
 
 
 @router.post('/', status_code=HTTPStatus.OK, response_model=OrderPublic)

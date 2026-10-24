@@ -4,7 +4,12 @@ from decimal import Decimal
 from pydantic import BaseModel
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from flowops.models import OrderStatus, ProductTag, UnitOfMeasure
+from flowops.models import (
+    IngredientStatus,
+    OrderStatus,
+    ProductTag,
+    UnitOfMeasure,
+)
 
 
 class IngredientSchema(BaseModel):
@@ -16,6 +21,7 @@ class IngredientSchema(BaseModel):
 
 class IngredientPublic(IngredientSchema):
     id: int
+    status: IngredientStatus
 
 
 class IngredientList(BaseModel):
@@ -27,6 +33,7 @@ class IngredientUpdate(BaseModel):
     unit_of_measure: UnitOfMeasure | None = None
     minimum: float | None = None
     quantity: float | None = None
+    status: IngredientStatus | None = None
 
 
 class ProductSchema(BaseModel):

@@ -12,6 +12,7 @@ from flowops.app import app
 from flowops.database import get_session
 from flowops.models import (
     Ingredient,
+    IngredientStatus,
     Order,
     OrderItem,
     Product,
@@ -82,6 +83,7 @@ async def ingredient(session):
         unit_of_measure=UnitOfMeasure.unidade,
         minimum='10',
         quantity='20',
+        status=IngredientStatus.ok,
     )
 
     session.add(ingredient)
@@ -102,7 +104,6 @@ async def product(session, ingredient):
     )
 
     session.add(product)
-    # flush gera o ID no banco sem commitar a transação global do teste
     await session.flush()
 
     product_ingredient = ProductIngredient(

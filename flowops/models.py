@@ -27,6 +27,12 @@ class OrderStatus(str, Enum):
     canceled = 'Cancelado'
 
 
+class IngredientStatus(str, Enum):
+    ok = 'Em estoque'
+    low_stock = 'Estoque baixo'
+    out_of_stock = 'Esgotado'
+
+
 @table_registry.mapped_as_dataclass
 class User:
     __tablename__ = 'users'
@@ -134,6 +140,7 @@ class Ingredient:
     unit_of_measure: Mapped[UnitOfMeasure]
     minimum: Mapped[float]
     quantity: Mapped[float]
+    status: Mapped[IngredientStatus]
 
     product_ingredients: Mapped[list['ProductIngredient']] = relationship(
         init=False, back_populates='ingredient', lazy='noload'

@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from flowops.models import Order, OrderStatus
+from flowops.models import IngredientStatus, Order, OrderStatus
 
 
 def test_create_order(client, user, product, mock_db_time):
@@ -55,9 +55,7 @@ def test_create_order_product_not_found(client, user):
     assert response.json() == {'detail': 'Produto não encontrado.'}
 
 
-def test_create_order_insufficient_stock(
-    client, user, product
-):
+def test_create_order_insufficient_stock(client, user, product):
     quantity = 67
     response = client.post(
         '/orders/',
@@ -75,10 +73,10 @@ def test_create_order_insufficient_stock(
     assert response.status_code == HTTPStatus.UNPROCESSABLE_CONTENT
     assert response.json() == {
         'detail': (
-                    f'Estoque insuficiente para o ingrediente '
-                    f'"{ingredient.name}". Disponível: {ingredient.quantity}. '
-                    f'Requerido: {required_qty}.'
-                )
+            f'Estoque insuficiente para o ingrediente '
+            f'"{ingredient.name}". Disponível: {ingredient.quantity}. '
+            f'Requerido: {required_qty}.'
+        )
     }
 
 
@@ -118,6 +116,60 @@ def test_subtract_ingredients_from_stock(client, user, ingredient, product):
     assert final_quantity == (
         initial_quantity - product.product_ingredients[0].quantity
     )
+
+
+def test_check_ingredient_status_when_subtract_ok(
+    client, user, ingredient, product
+):
+    initial_status = ingredient.status
+    client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 1},
+        },
+    )
+    final_status = ingredient.status
+
+    assert initial_status == IngredientStatus.ok
+    assert final_status == IngredientStatus.ok
+
+
+def test_check_ingredient_status_when_subtract_low_stock(
+    client, user, ingredient, product
+):
+    initial_status = ingredient.status
+    client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 3},
+        },
+    )
+    final_status = ingredient.status
+
+    assert initial_status == IngredientStatus.ok
+    assert final_status == IngredientStatus.low_stock
+
+
+def test_check_ingredient_status_when_subtract_out_of_stock(
+    client, user, ingredient, product
+):
+    initial_status = ingredient.status
+    client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 4},
+        },
+    )
+    final_status = ingredient.status
+
+    assert initial_status == IngredientStatus.ok
+    assert final_status == IngredientStatus.out_of_stock
 
 
 def test_list_orders(client, order, user):
@@ -222,10 +274,31 @@ def test_restock_ingredients(client, user, ingredient, product):
 
     subtract = product.product_ingredients[0].ingredient.quantity
 
-    client.post(f'/orders/{order['id']}', json={'reason': 'Tempo de espera.'})
+    client.post(f'/orders/{order["id"]}', json={'reason': 'Tempo de espera.'})
     restock = product.product_ingredients[0].ingredient.quantity
 
     assert subtract == (
         initial_quantity - product.product_ingredients[0].quantity
     )
     assert restock == initial_quantity
+
+
+def test_check_ingredient_status_when_restock(
+    client, user, ingredient, product
+):
+    initial_status = ingredient.status
+
+    order_response = client.post(
+        '/orders/',
+        json={
+            'client_id': user.id,
+            'notes': 'notes',
+            'product_quantity': {product.id: 3},
+        },
+    )
+    order = order_response.json()
+
+    client.post(f'/orders/{order["id"]}', json={'reason': 'Tempo de espera.'})
+    final_status = ingredient.status
+
+    assert initial_status == final_status
